@@ -1,6 +1,6 @@
 module github.com/core49/gonfig
 
-go 1.19
+go 1.20
 
 require (
 	github.com/golang/mock v1.4.4
