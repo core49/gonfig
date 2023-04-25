@@ -1,4 +1,10 @@
-[![codecov](https://codecov.io/gh/core49/gonfig/branch/main/graph/badge.svg?token=AO6U2S2I91)](https://codecov.io/gh/core49/gonfig)
+![Go Version](https://img.shields.io/github/go-mod/go-version/core49/gonfig)
+[![Project status](https://img.shields.io/badge/version-0.0.2-green.svg)](https://github.com/core49/gonfig/releases)
+![Last commit](https://img.shields.io/github/last-commit/core49/gonfig/main)
+![Go Report Card](https://goreportcard.com/badge/github.com/core49/gonfig)
+[![codecov](https://img.shields.io/codecov/c/github/core49/gonfig?token=AO6U2S2I91)](https://codecov.io/gh/core49/gonfig)
+[![MIT license](https://img.shields.io/bower/l/core)](https://github.com/core49/gonfig/blob/main/LICENSE.md)
+[![GoDoc](https://pkg.go.dev/badge/github.com/core49/gonfig?utm_source=godoc)](https://pkg.go.dev/github.com/core49/gonfig)
 
 # Gonfig
 
