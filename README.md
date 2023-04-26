@@ -1,5 +1,5 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/core49/gonfig)](https://go.dev/doc/devel/release#go1.20)
-[![Project status](https://img.shields.io/badge/version-0.0.2-green.svg)](https://github.com/core49/gonfig/releases)
+[![Project status](https://img.shields.io/badge/version-0.0.3-green.svg)](https://github.com/core49/gonfig/releases)
 [![Last commit](https://img.shields.io/github/last-commit/core49/gonfig/main)](https://github.com/core49/gonfig/commits/main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/core49/gonfig)](https://goreportcard.com/report/github.com/core49/gonfig)
 [![codecov](https://img.shields.io/codecov/c/github/core49/gonfig?token=AO6U2S2I91)](https://codecov.io/gh/core49/gonfig)

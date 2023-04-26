@@ -15,7 +15,7 @@ import (
 // It applies the flag configuration, generates a default file path if not disabled,
 // and returns the repository and any errors encountered during creation.
 func New(options ...OptionFunc) (Repository, error) {
-	r := &repository{osArgs: os.Args}
+	r := &repository{osArgs: os.Args, fileSystem: afero.NewOsFs()}
 
 	for _, optionFunc := range options {
 		optionFunc(r)
