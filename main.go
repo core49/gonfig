@@ -12,8 +12,7 @@ import (
 )
 
 // New creates a new repository with the given options.
-// It applies the flag configuration, generates a default file path if not disabled,
-// and returns the repository and any errors encountered during creation.
+// It applies the flag configuration, generates a default file path if not disabled, and returns the repository
 func New(options ...OptionFunc) (Repository, error) {
 	r := &repository{osArgs: os.Args, fileSystem: afero.NewOsFs()}
 
@@ -105,25 +104,40 @@ func (r *repository) applyFlagConfiguration() error {
 	return flagSet.Parse(r.osArgs[1:])
 }
 
-// Load loads configuration data from the file at the file path into the given model.
-// It returns an error if there was a problem with the file or the model is invalid.
-func (r *repository) Load(model interface{}) error {
+// checkModel verifies that the provided model is a non-nil pointer to a struct type.
+func (r *repository) checkModel(model interface{}) error {
 	if model == nil || reflect.ValueOf(model).Kind() != reflect.Ptr || reflect.TypeOf(model).Elem().Kind() != reflect.Struct {
 		return ErrInvalidConfigModel
 	}
 
+	return nil
+}
+
+// openFile opens the repository's designated file using the file system.
+func (r *repository) openFile() (afero.File, closeFileFunc, error) {
 	if len(r.filePath) == 0 {
-		return ErrEmptyConfigFilePath
+		return nil, nil, ErrEmptyConfigFilePath
 	}
 
 	file, err := r.fileSystem.Open(r.filePath)
-	if err != nil {
+	deferFunc := func(f afero.File) {
+		_ = f.Close()
+	}
+
+	return file, deferFunc, err
+}
+
+// Load loads configuration data from the file at the file path into the given model.
+func (r *repository) Load(model interface{}) error {
+	if err := r.checkModel(model); err != nil {
 		return err
 	}
 
-	defer func() {
-		_ = file.Close()
-	}()
+	file, deferFunc, err := r.openFile()
+	if err != nil {
+		return err
+	}
+	defer deferFunc(file)
 
 	r.data = model
 
@@ -131,10 +145,9 @@ func (r *repository) Load(model interface{}) error {
 }
 
 // WriteSkeleton writes a JSON skeleton of the model to the file path.
-// It returns an error if there was a problem with the model or the file.
 func (r *repository) WriteSkeleton(model interface{}) error {
-	if model == nil || reflect.ValueOf(model).Kind() != reflect.Ptr || reflect.TypeOf(model).Elem().Kind() != reflect.Struct {
-		return ErrInvalidConfigModel
+	if err := r.checkModel(model); err != nil {
+		return err
 	}
 
 	b, err := json.MarshalIndent(model, "", "\t")
@@ -163,4 +176,28 @@ func (r *repository) WriteSkeleton(model interface{}) error {
 
 	_, err = file.Write(b)
 	return err
+}
+
+// IsEmpty checks if the config file is empty. Returns `true` if the file does not exist or is empty.
+func (r *repository) IsEmpty(model interface{}) (bool, error) {
+	if err := r.checkModel(model); err != nil {
+		return false, err
+	}
+
+	file, deferFunc, err := r.openFile()
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+	defer deferFunc(file)
+
+	fileInfo, _ := file.Stat()
+	if fileInfo.Size() > 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
