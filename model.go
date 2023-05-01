@@ -11,13 +11,20 @@ type flagConfiguration []flagConfig
 // OptionFunc is a function that takes a repository pointer and modifies it based on the function's implementation.
 type OptionFunc func(r *repository)
 
+// closeFileFunc is a function type for closing a file object.
+type closeFileFunc func(f afero.File)
+
 // Repository interface contains all the functions that are available to public use.
 type Repository interface {
+	// Load loads configuration data from the file at the file path into the given model.
 	Load(model interface{}) error
+	// WriteSkeleton writes a JSON skeleton of the model to the file path.
 	WriteSkeleton(model interface{}) error
+	// IsEmpty checks if the config file is empty.  Returns `true` if the file does not exist or is empty.
+	IsEmpty(model interface{}) (bool, error)
 }
 
-// repository struct is the initialized gonfig repository
+// repository struct is the initialized gonfig.
 type repository struct {
 	data                             interface{}
 	disableDefaultFlagConfiguration  bool

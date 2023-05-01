@@ -27,6 +27,7 @@ func TestNew(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
 		t.Run("WithoutOptions", func(t *testing.T) {
 			r, err := New(OptionSetOsArgs(defaultOsArgs))
+
 			assert.NoError(t, err)
 			assert.NotEmpty(t, r)
 		})
@@ -40,6 +41,7 @@ func TestNew(t *testing.T) {
 					UsageMessage: "This flag is used as an append test",
 					VarPointer:   &testVar,
 				}))
+
 				assert.NoError(t, err)
 				assert.NotEmpty(t, r)
 				assert.NotEmpty(t, testVar)
@@ -85,6 +87,7 @@ func TestNew(t *testing.T) {
 						VarPointer:   &testDurationVar,
 					},
 				}))
+
 				assert.NoError(t, err)
 				assert.NotEmpty(t, r)
 			})
@@ -92,12 +95,14 @@ func TestNew(t *testing.T) {
 		t.Run("Fail", func(t *testing.T) {
 			t.Run("WithoutOSArgs", func(t *testing.T) {
 				r, err := New(OptionSetOsArgs([]string{}), OptionSetFileSystem(afero.NewMemMapFs()))
+
 				assert.Error(t, err)
 				assert.Empty(t, r)
 			})
 			t.Run("WithOptions", func(t *testing.T) {
 				t.Run("OptionDisableDefaultFlagConfiguration", func(t *testing.T) {
 					r, err := New(OptionSetFileSystem(afero.NewMemMapFs()), OptionDisableDefaultFlagConfiguration(true))
+
 					assert.Error(t, err)
 					assert.Empty(t, r)
 				})
@@ -175,12 +180,13 @@ func TestOptionSetConfigFilePathVariable(t *testing.T) {
 func TestRepository_Load(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
 		afs := afero.NewMemMapFs()
+
 		file, err := afs.Create("test.json")
+		require.NoError(t, err)
+
 		defer func() {
 			_ = file.Close()
 		}()
-
-		require.NoError(t, err)
 
 		j, err := json.Marshal(configModelData)
 		require.NoError(t, err)
@@ -195,6 +201,7 @@ func TestRepository_Load(t *testing.T) {
 
 		cm := &configModel{}
 		err = r.Load(cm)
+
 		assert.NoError(t, err)
 		assert.Equal(t, &configModelData, cm)
 	})
@@ -248,14 +255,18 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 			fileSystem: afs,
 		}
 		err := r.WriteSkeleton(&configModel{})
-
 		require.NoError(t, err)
 
 		file, err := r.fileSystem.Open(r.filePath)
 		require.NoError(t, err)
 
+		defer func() {
+			_ = file.Close()
+		}()
+
 		b, err := io.ReadAll(file)
 		require.NoError(t, err)
+
 		assert.Equal(t, "{\n\t\"name\": \"\",\n\t\"version\": 0\n}", string(b))
 	})
 	t.Run("Fail", func(t *testing.T) {
@@ -271,7 +282,7 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 			}
 			err = r.WriteSkeleton(&configModel{})
 
-			require.EqualError(t, ErrConfigFileExist, err.Error())
+			assert.EqualError(t, ErrConfigFileExist, err.Error())
 		})
 		t.Run("InvalidConfigModel", func(t *testing.T) {
 			t.Run("Nil", func(t *testing.T) {
@@ -300,7 +311,8 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 				X chan int
 			}{}
 			err := r.WriteSkeleton(&m)
-			require.Error(t, err)
+
+			assert.Error(t, err)
 		})
 		t.Run("EmptyFilePath", func(t *testing.T) {
 			r := &repository{}
@@ -317,7 +329,129 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 			}
 
 			err := r.WriteSkeleton(&configModel{})
-			require.Error(t, err)
+
+			assert.Error(t, err)
+		})
+	})
+}
+
+func TestRepository_IsEmptyConfig(t *testing.T) {
+	t.Run("Ok", func(t *testing.T) {
+		t.Run("FileDoesNotExist", func(t *testing.T) {
+			afs := afero.NewMemMapFs()
+
+			r := &repository{
+				filePath:   "test.json",
+				fileSystem: afs,
+			}
+
+			exists, err := r.IsEmpty(&configModel{})
+
+			assert.NoError(t, err)
+			assert.True(t, exists)
+		})
+		t.Run("FileExists", func(t *testing.T) {
+			t.Run("Empty", func(t *testing.T) {
+				afs := afero.NewMemMapFs()
+
+				r := &repository{
+					filePath:   "test.json",
+					fileSystem: afs,
+				}
+
+				file, err := r.fileSystem.Create(r.filePath)
+				require.NoError(t, err)
+
+				defer func() {
+					_ = file.Close()
+				}()
+
+				exists, err := r.IsEmpty(&configModel{})
+
+				assert.NoError(t, err)
+				assert.True(t, exists)
+			})
+			t.Run("ContainsEmptyJSON", func(t *testing.T) {
+				afs := afero.NewMemMapFs()
+
+				r := &repository{
+					filePath:   "test.json",
+					fileSystem: afs,
+				}
+
+				file, err := r.fileSystem.Create(r.filePath)
+				require.NoError(t, err)
+
+				_, err = file.Write([]byte("{}"))
+				require.NoError(t, err)
+
+				defer func() {
+					_ = file.Close()
+				}()
+
+				exists, err := r.IsEmpty(&configModel{})
+
+				assert.NoError(t, err)
+				assert.False(t, exists)
+			})
+			t.Run("ContainsValidContent", func(t *testing.T) {
+				afs := afero.NewMemMapFs()
+
+				r := &repository{
+					filePath:   "test.json",
+					fileSystem: afs,
+				}
+				err := r.WriteSkeleton(&configModel{})
+				require.NoError(t, err)
+
+				file, err := r.fileSystem.Open(r.filePath)
+				require.NoError(t, err)
+
+				defer func() {
+					_ = file.Close()
+				}()
+
+				b, err := io.ReadAll(file)
+				require.NoError(t, err)
+				require.Equal(t, "{\n\t\"name\": \"\",\n\t\"version\": 0\n}", string(b))
+
+				exists, err := r.IsEmpty(&configModel{})
+
+				assert.NoError(t, err)
+				assert.False(t, exists)
+			})
+		})
+	})
+	t.Run("Fail", func(t *testing.T) {
+		t.Run("InvalidConfigModel", func(t *testing.T) {
+			t.Run("Nil", func(t *testing.T) {
+				r := &repository{}
+				exists, err := r.IsEmpty(nil)
+
+				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
+				assert.False(t, exists)
+			})
+			t.Run("NoneStruct", func(t *testing.T) {
+				r := &repository{}
+				exists, err := r.IsEmpty("string")
+
+				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
+				assert.False(t, exists)
+			})
+			t.Run("NonePointerStruct", func(t *testing.T) {
+				r := &repository{}
+				exists, err := r.IsEmpty(configModel{})
+
+				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
+				assert.False(t, exists)
+			})
+		})
+		t.Run("EmptyFilePath", func(t *testing.T) {
+			r := &repository{}
+			exists, err := r.IsEmpty(&configModel{})
+
+			assert.EqualError(t, err, ErrEmptyConfigFilePath.Error())
+			assert.False(t, exists)
 		})
 	})
 }
