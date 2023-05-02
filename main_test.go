@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -destination mock_afero_fs_test.go -package gonfig github.com/spf13/afero Fs
-
 type configModel struct {
 	Name    string `json:"name"`
 	Version int    `json:"version"`
@@ -113,7 +111,7 @@ func TestNew(t *testing.T) {
 
 func TestOptionSetFileSystem(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
-		r := &repository{}
+		r := &Repository{}
 		require.Empty(t, r.fileSystem)
 
 		afs := afero.NewMemMapFs()
@@ -127,7 +125,7 @@ func TestOptionSetFileSystem(t *testing.T) {
 
 func TestOptionAppendFlagConfig(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
-		r := &repository{}
+		r := &Repository{}
 		fc := flagConfig{
 			Type:         "string",
 			Name:         "test",
@@ -145,7 +143,7 @@ func TestOptionAppendFlagConfig(t *testing.T) {
 
 func TestOptionSetFlagConfiguration(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
-		r := &repository{}
+		r := &Repository{}
 
 		optionFunc := OptionSetFlagConfiguration(defaultFlagConfig)
 		optionFunc(r)
@@ -156,7 +154,7 @@ func TestOptionSetFlagConfiguration(t *testing.T) {
 
 func TestOptionDisableDefaultFlagConfiguration(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
-		r := &repository{}
+		r := &Repository{}
 
 		optionFunc := OptionDisableDefaultFlagConfiguration(true)
 		optionFunc(r)
@@ -167,7 +165,7 @@ func TestOptionDisableDefaultFlagConfiguration(t *testing.T) {
 
 func TestOptionSetConfigFilePathVariable(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
-		r := &repository{}
+		r := &Repository{}
 
 		optionFunc := OptionSetConfigFilePathVariable("/tmp/test.json")
 		optionFunc(r)
@@ -194,7 +192,7 @@ func TestRepository_Load(t *testing.T) {
 		_, err = file.Write(j)
 		require.NoError(t, err)
 
-		r := &repository{
+		r := &Repository{
 			filePath:   "test.json",
 			fileSystem: afs,
 		}
@@ -208,26 +206,26 @@ func TestRepository_Load(t *testing.T) {
 	t.Run("Fail", func(t *testing.T) {
 		t.Run("InvalidConfigModel", func(t *testing.T) {
 			t.Run("Nil", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				err := r.Load(nil)
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 			})
 			t.Run("NoneStruct", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				err := r.Load("string")
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 			})
 			t.Run("NonePointerStruct", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				err := r.Load(configModel{})
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 			})
 		})
 		t.Run("EmptyFilePath", func(t *testing.T) {
-			r := &repository{}
+			r := &Repository{}
 			err := r.Load(&configModel{})
 
 			assert.EqualError(t, err, ErrEmptyConfigFilePath.Error())
@@ -235,7 +233,7 @@ func TestRepository_Load(t *testing.T) {
 		t.Run("InvalidFilePath", func(t *testing.T) {
 			afs := afero.NewMemMapFs()
 
-			r := &repository{
+			r := &Repository{
 				filePath:   "not.existing",
 				fileSystem: afs,
 			}
@@ -250,7 +248,7 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
 		afs := afero.NewMemMapFs()
 
-		r := &repository{
+		r := &Repository{
 			filePath:   "test.json",
 			fileSystem: afs,
 		}
@@ -276,7 +274,7 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, file.Close())
 
-			r := &repository{
+			r := &Repository{
 				filePath:   "test.json",
 				fileSystem: afs,
 			}
@@ -286,26 +284,26 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 		})
 		t.Run("InvalidConfigModel", func(t *testing.T) {
 			t.Run("Nil", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				err := r.WriteSkeleton(nil)
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 			})
 			t.Run("NoneStruct", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				err := r.WriteSkeleton("string")
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 			})
 			t.Run("NonePointerStruct", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				err := r.WriteSkeleton(configModel{})
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 			})
 		})
 		t.Run("MarshalIndent", func(t *testing.T) {
-			r := &repository{}
+			r := &Repository{}
 
 			m := struct {
 				X chan int
@@ -315,7 +313,7 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 			assert.Error(t, err)
 		})
 		t.Run("EmptyFilePath", func(t *testing.T) {
-			r := &repository{}
+			r := &Repository{}
 			err := r.WriteSkeleton(&configModel{})
 
 			assert.EqualError(t, err, ErrEmptyConfigFilePath.Error())
@@ -323,7 +321,7 @@ func TestRepository_WriteSkeleton(t *testing.T) {
 		t.Run("InvalidFilePath", func(t *testing.T) {
 			afs := afero.NewReadOnlyFs(afero.NewMemMapFs())
 
-			r := &repository{
+			r := &Repository{
 				filePath:   "test.json",
 				fileSystem: afs,
 			}
@@ -340,7 +338,7 @@ func TestRepository_IsEmptyConfig(t *testing.T) {
 		t.Run("FileDoesNotExist", func(t *testing.T) {
 			afs := afero.NewMemMapFs()
 
-			r := &repository{
+			r := &Repository{
 				filePath:   "test.json",
 				fileSystem: afs,
 			}
@@ -354,7 +352,7 @@ func TestRepository_IsEmptyConfig(t *testing.T) {
 			t.Run("Empty", func(t *testing.T) {
 				afs := afero.NewMemMapFs()
 
-				r := &repository{
+				r := &Repository{
 					filePath:   "test.json",
 					fileSystem: afs,
 				}
@@ -374,7 +372,7 @@ func TestRepository_IsEmptyConfig(t *testing.T) {
 			t.Run("ContainsEmptyJSON", func(t *testing.T) {
 				afs := afero.NewMemMapFs()
 
-				r := &repository{
+				r := &Repository{
 					filePath:   "test.json",
 					fileSystem: afs,
 				}
@@ -397,7 +395,7 @@ func TestRepository_IsEmptyConfig(t *testing.T) {
 			t.Run("ContainsValidContent", func(t *testing.T) {
 				afs := afero.NewMemMapFs()
 
-				r := &repository{
+				r := &Repository{
 					filePath:   "test.json",
 					fileSystem: afs,
 				}
@@ -425,21 +423,21 @@ func TestRepository_IsEmptyConfig(t *testing.T) {
 	t.Run("Fail", func(t *testing.T) {
 		t.Run("InvalidConfigModel", func(t *testing.T) {
 			t.Run("Nil", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				exists, err := r.IsEmpty(nil)
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 				assert.False(t, exists)
 			})
 			t.Run("NoneStruct", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				exists, err := r.IsEmpty("string")
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
 				assert.False(t, exists)
 			})
 			t.Run("NonePointerStruct", func(t *testing.T) {
-				r := &repository{}
+				r := &Repository{}
 				exists, err := r.IsEmpty(configModel{})
 
 				assert.EqualError(t, err, ErrInvalidConfigModel.Error())
@@ -447,7 +445,7 @@ func TestRepository_IsEmptyConfig(t *testing.T) {
 			})
 		})
 		t.Run("EmptyFilePath", func(t *testing.T) {
-			r := &repository{}
+			r := &Repository{}
 			exists, err := r.IsEmpty(&configModel{})
 
 			assert.EqualError(t, err, ErrEmptyConfigFilePath.Error())
