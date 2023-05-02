@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-// New creates a new repository with the given options.
-// It applies the flag configuration, generates a default file path if not disabled, and returns the repository
-func New(options ...OptionFunc) (Repository, error) {
-	r := &repository{osArgs: os.Args, fileSystem: afero.NewOsFs()}
+// New creates a new Repository with the given options.
+// It applies the flag configuration, generates a default file path if not disabled, and returns the Repository
+func New(options ...OptionFunc) (Gonfig, error) {
+	r := &Repository{osArgs: os.Args, fileSystem: afero.NewOsFs()}
 
 	for _, optionFunc := range options {
 		optionFunc(r)
@@ -34,49 +34,49 @@ func New(options ...OptionFunc) (Repository, error) {
 
 // OptionSetOsArgs sets the os arguments.
 func OptionSetOsArgs(osArgs []string) OptionFunc {
-	return func(r *repository) {
+	return func(r *Repository) {
 		r.osArgs = osArgs
 	}
 }
 
 // OptionSetFileSystem sets the file system.
 func OptionSetFileSystem(fs afero.Fs) OptionFunc {
-	return func(r *repository) {
+	return func(r *Repository) {
 		r.fileSystem = fs
 	}
 }
 
 // OptionAppendFlagConfig appends the given `flagConfig` to the flag configuration.
 func OptionAppendFlagConfig(fc flagConfig) OptionFunc {
-	return func(r *repository) {
+	return func(r *Repository) {
 		r.flagConfiguration = append(r.flagConfiguration, fc)
 	}
 }
 
 // OptionSetFlagConfiguration sets the flag configuration to the given `flagConfiguration`.
 func OptionSetFlagConfiguration(fc flagConfiguration) OptionFunc {
-	return func(r *repository) {
+	return func(r *Repository) {
 		r.flagConfiguration = fc
 	}
 }
 
 // OptionDisableDefaultFlagConfiguration disables the default flag configuration.
 func OptionDisableDefaultFlagConfiguration(v bool) OptionFunc {
-	return func(r *repository) {
+	return func(r *Repository) {
 		r.disableDefaultFlagConfiguration = v
 	}
 }
 
 // OptionSetConfigFilePathVariable sets the file path and disables default path generation.
 func OptionSetConfigFilePathVariable(path string) OptionFunc {
-	return func(r *repository) {
+	return func(r *Repository) {
 		r.filePath = path
 		r.disableDefaultFilePathGeneration = true
 	}
 }
 
 // applyFlagConfiguration applies flag configurations to command line arguments.
-func (r *repository) applyFlagConfiguration() error {
+func (r *Repository) applyFlagConfiguration() error {
 	fmt.Println(r.osArgs)
 	if len(r.osArgs) == 0 {
 		return errors.New("os args should not be empty")
@@ -105,7 +105,7 @@ func (r *repository) applyFlagConfiguration() error {
 }
 
 // checkModel verifies that the provided model is a non-nil pointer to a struct type.
-func (r *repository) checkModel(model interface{}) error {
+func (r *Repository) checkModel(model interface{}) error {
 	if model == nil || reflect.ValueOf(model).Kind() != reflect.Ptr || reflect.TypeOf(model).Elem().Kind() != reflect.Struct {
 		return ErrInvalidConfigModel
 	}
@@ -113,8 +113,8 @@ func (r *repository) checkModel(model interface{}) error {
 	return nil
 }
 
-// openFile opens the repository's designated file using the file system.
-func (r *repository) openFile() (afero.File, closeFileFunc, error) {
+// openFile opens the Repository's designated file using the file system.
+func (r *Repository) openFile() (afero.File, closeFileFunc, error) {
 	if len(r.filePath) == 0 {
 		return nil, nil, ErrEmptyConfigFilePath
 	}
@@ -128,7 +128,7 @@ func (r *repository) openFile() (afero.File, closeFileFunc, error) {
 }
 
 // Load loads configuration data from the file at the file path into the given model.
-func (r *repository) Load(model interface{}) error {
+func (r *Repository) Load(model interface{}) error {
 	if err := r.checkModel(model); err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (r *repository) Load(model interface{}) error {
 }
 
 // WriteSkeleton writes a JSON skeleton of the model to the file path.
-func (r *repository) WriteSkeleton(model interface{}) error {
+func (r *Repository) WriteSkeleton(model interface{}) error {
 	if err := r.checkModel(model); err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (r *repository) WriteSkeleton(model interface{}) error {
 }
 
 // IsEmpty checks if the config file is empty. Returns `true` if the file does not exist or is empty.
-func (r *repository) IsEmpty(model interface{}) (bool, error) {
+func (r *Repository) IsEmpty(model interface{}) (bool, error) {
 	if err := r.checkModel(model); err != nil {
 		return false, err
 	}
